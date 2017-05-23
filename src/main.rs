@@ -31,7 +31,7 @@ fn main() {
                 // println!("{:#?}", def);
 
                 if !def.docs.trim().is_empty() {
-                    print!("{}: ", def.qualname);
+                    print!("{:?} {}: ", def.kind, def.qualname);
                 }
 
                 let mut dox = String::new();
@@ -39,7 +39,8 @@ fn main() {
                     if ln.trim().is_empty() {
                         break;
                     }
-                    dox.push_str(ln);
+                    dox.push(' ');
+                    dox.push_str(ln.trim());
                 }
 
                 if !dox.is_empty() {
