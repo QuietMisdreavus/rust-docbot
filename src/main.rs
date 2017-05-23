@@ -49,9 +49,13 @@ fn main() {
                 if let Ok(url) = host.doc_url(&def.span) {
                     println!("  {}", url);
                 }
+            } else {
+                println!("unknown error searching for \"{}\"", input);
             }
         }
     }
+
+    println!("");
 }
 
 fn read_line() -> std::io::Result<String> {
