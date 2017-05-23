@@ -34,11 +34,20 @@ fn main() {
                     print!("{}: ", def.qualname);
                 }
 
+                let mut dox = String::new();
                 for ln in def.docs.lines() {
                     if ln.trim().is_empty() {
                         break;
                     }
-                    println!("{}", ln.trim());
+                    dox.push_str(ln);
+                }
+
+                if !dox.is_empty() {
+                    println!("{}", dox.trim());
+                }
+
+                if let Ok(url) = host.doc_url(&def.span) {
+                    println!("  {}", url);
                 }
             }
         }
