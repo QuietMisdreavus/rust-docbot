@@ -129,7 +129,7 @@ fn print_def(def: &analysis::Def, host: &analysis::AnalysisHost) {
 
     let mut dox = String::new();
     for ln in def.docs.lines() {
-        if ln.trim().is_empty() {
+        if ln.trim().is_empty() && !dox.trim().is_empty() {
             break;
         }
         dox.push(' ');
