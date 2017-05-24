@@ -19,44 +19,78 @@ fn main() {
             break;
         }
 
-        let search = host.search_for_id(&input).unwrap();
+        let elems = input.split("::").collect::<Vec<_>>();
+        if elems.is_empty() {
+            break;
+        }
+
+        let name = elems.last().unwrap();
+
+        let search = host.search_for_id(name).unwrap();
 
         if search.is_empty() {
             println!("No results for \"{}\"", input);
             continue;
         }
 
-        for result in search {
-            if let Ok(def) = host.get_def(result) {
-                // println!("{:#?}", def);
+        let def = if elems.len() == 1 {
+            host.get_def(*search.first().unwrap()).unwrap()
+        } else {
+            let mut def = None;
 
-                if !def.docs.trim().is_empty() {
-                    print!("{:?} {}: ", def.kind, def.qualname);
-                }
+            for result in &search {
+                let def_guess = host.get_def(*result).unwrap();
 
-                let mut dox = String::new();
-                for ln in def.docs.lines() {
-                    if ln.trim().is_empty() {
-                        break;
+                if let Some(p_id) = def_guess.parent {
+                    let parent = if let Ok(p) = host.get_def(p_id) {
+                        p
+                    } else {
+                        continue;
+                    };
+
+                    if Some(&*parent.name) == elems.iter().cloned().rev().skip(1).next() {
+                        def = Some(def_guess);
                     }
-                    dox.push(' ');
-                    dox.push_str(ln.trim());
+                } else {
+                    if Some(&*def_guess.qualname) == elems.iter().cloned().rev().skip(1).next() {
+                        def = Some(def_guess);
+                    }
                 }
-
-                if !dox.is_empty() {
-                    println!("{}", dox.trim());
-                }
-
-                if let Ok(url) = host.doc_url(&def.span) {
-                    println!("  {}", url);
-                }
-            } else {
-                println!("unknown error searching for \"{}\"", input);
             }
-        }
+
+            if let Some(def) = def {
+                def
+            } else {
+                println!("No results for \"{}\"", input);
+                continue;
+            }
+        };
+
+        print_def(&def, &host);
     }
 
     println!("");
+}
+
+fn print_def(def: &analysis::Def, host: &analysis::AnalysisHost) {
+    print!("{:?} {}: ", def.kind, def.qualname);
+
+    let mut dox = String::new();
+    for ln in def.docs.lines() {
+        if ln.trim().is_empty() {
+            break;
+        }
+        dox.push(' ');
+        dox.push_str(ln.trim());
+    }
+
+    if !dox.is_empty() {
+        println!("{}", dox.trim());
+    }
+
+    if let Ok(url) = host.doc_url(&def.span) {
+        println!("  {}", url);
+    }
 }
 
 fn read_line() -> std::io::Result<String> {
