@@ -52,7 +52,8 @@ fn main() {
                         def = Some(def_guess);
                     }
                 } else {
-                    if Some(&*def_guess.qualname) == elems.iter().cloned().rev().skip(1).next() {
+                    if elems.iter().cloned().rev().skip(1).next()
+                            .map(|p| def_guess.qualname.contains(p)).unwrap_or(false) {
                         def = Some(def_guess);
                     }
                 }
