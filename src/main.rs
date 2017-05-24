@@ -50,11 +50,13 @@ fn main() {
 
                     if Some(&*parent.name) == elems.iter().cloned().rev().skip(1).next() {
                         def = Some(def_guess);
+                        break;
                     }
                 } else {
                     if elems.iter().cloned().rev().skip(1).next()
                             .map(|p| def_guess.qualname.contains(p)).unwrap_or(false) {
                         def = Some(def_guess);
+                        break;
                     }
                 }
             }
