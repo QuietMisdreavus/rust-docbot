@@ -1,6 +1,9 @@
 extern crate rls_analysis as analysis;
+extern crate irc;
 
 use std::collections::HashMap;
+
+use irc::client::prelude::*;
 
 fn main() {
     let mut home = std::env::home_dir().unwrap();
@@ -21,26 +24,74 @@ fn main() {
 
     println!("done!");
 
-    while let Ok(input) = read_line() {
-        if input.trim().is_empty() {
-            break;
-        }
+    println!("connecting...");
 
-        if let Some(def) = prelude.get(input.trim()) {
-            print_def(def, &host);
-            continue;
-        }
+    let irc_conf = Config::load("config.json").unwrap();
+    let srv = IrcServer::from_config(irc_conf).unwrap();
+    srv.identify().unwrap();
 
-        let def = find_def(&input, &host);
+    println!("ready!");
 
-        if let Some(def) = def {
-            print_def(&def, &host);
-        } else {
-            println!("No results for \"{}\"", input.trim());
+    let my_nick = srv.config().nickname.as_ref().unwrap().as_str();
+
+    for msg in srv.iter() {
+        let msg = msg.unwrap();
+
+        match msg.command {
+            Command::JOIN(ref channel, _, _) => {
+                if let &Some(ref prefix) = &msg.prefix {
+                    if prefix.starts_with(my_nick) {
+                        println!("Joined to {}", channel);
+                    }
+                }
+            }
+            Command::PRIVMSG(ref target, ref text) => {
+                let text = text.trim();
+
+                if let Some(nick) = msg.source_nickname() {
+                    let (target, cmd): (&str, Option<&str>) = if target == my_nick {
+                        if !text.trim().is_empty() {
+                            (nick, Some(text))
+                        } else {
+                            (nick, None)
+                        }
+                    } else {
+                        let cmd = if text.starts_with(my_nick) {
+                            let text = &text[my_nick.len()..];
+                            if text.starts_with(&[',', ':'][..]) && !text[1..].trim().is_empty() {
+                                Some(text[1..].trim())
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        };
+
+                        (target.as_str(), cmd)
+                    };
+
+                    if let Some(cmd) = cmd {
+                        let result;
+
+                        if let Some(def) = prelude.get(cmd.trim()) {
+                            result = Some(def.clone());
+                        } else {
+                            result = find_def(cmd, &host);
+                        }
+
+                        if let Some(def) = result {
+                            let text = format_def(&def, &host).unwrap();
+
+                            srv.send_privmsg(target, &text).unwrap();
+                        } else {
+                            srv.send_privmsg(target, &format!("No results for \"{}\".", cmd.trim())).unwrap();
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
-
-    println!("");
 }
 
 // some of the items in the prelude aren't actually the first things returned when just their name
@@ -151,21 +202,4 @@ fn format_def(def: &analysis::Def, host: &analysis::AnalysisHost) -> Result<Stri
     }
 
     Ok(output)
-}
-
-fn print_def(def: &analysis::Def, host: &analysis::AnalysisHost) {
-    println!("{}", format_def(def, host).unwrap());
-}
-
-fn read_line() -> std::io::Result<String> {
-    use std::io::Write;
-
-    println!("");
-    print!("query (send empty to quit): ");
-    std::io::stdout().flush().unwrap();
-
-    let mut line = String::new();
-    std::io::stdin().read_line(&mut line)?;
-
-    Ok(line)
 }

@@ -5,3 +5,4 @@ authors = ["QuietMisdreavus <grey@quietmisdreavus.net>"]
 
 [dependencies]
 rls-analysis = { git = "https://github.com/nrc/rls-analysis/" }
+irc = "0.11.7"
