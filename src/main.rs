@@ -1,5 +1,7 @@
 extern crate rls_analysis as analysis;
 
+use std::collections::HashMap;
+
 fn main() {
     let mut home = std::env::home_dir().unwrap();
     //TODO: dynamically load toolchain/target
@@ -13,9 +15,20 @@ fn main() {
 
     println!("done!");
 
+    println!("loading prelude...");
+
+    let prelude = prelude(&host);
+
+    println!("done!");
+
     while let Ok(input) = read_line() {
         if input.trim().is_empty() {
             break;
+        }
+
+        if let Some(def) = prelude.get(input.trim()) {
+            print_def(def, &host);
+            continue;
         }
 
         let def = find_def(&input, &host);
@@ -28,6 +41,34 @@ fn main() {
     }
 
     println!("");
+}
+
+// some of the items in the prelude aren't actually the first things returned when just their name
+// is searched, so let's make a quick lookup table for it
+//
+// this listing is manually copied from the prelude as of 1.17.0
+fn prelude(host: &analysis::AnalysisHost) -> HashMap<&'static str, analysis::Def> {
+    let prelude = ["marker::Copy", "marker::Sized", "marker::Send", "marker::Sync", "ops::Drop",
+                   "ops::Fn", "ops::FnMut", "ops::FnOnce", "mem::drop", "boxed::Box",
+                   "borrow::ToOwned", "clone::Clone", "cmp::PartialEq", "cmp::PartialOrd",
+                   "cmp::Eq", "cmp::Ord", "convert::AsRef", "convert::AsMut", "convert::Into",
+                   "convert::From", "default::Default", "iter::Iterator", "iter::Extend",
+                   "iter::IntoIterator", "iter::DoubleEndedIterator", "iter::ExactSizeIterator",
+                   "option::Option", "Option::Some", "Option::None", "result::Result",
+                   "Result::Ok", "Result::Err", "slice::SliceConcatExt", "string::String",
+                   "string::ToString", "vec::Vec"];
+
+    let mut map = HashMap::new();
+
+    for name in prelude.iter().cloned() {
+        let def = find_def(name, host).expect("missing prelude item");
+
+        let suffix = name.split("::").last().unwrap();
+
+        map.insert(suffix, def);
+    }
+
+    map
 }
 
 fn find_def(input: &str, host: &analysis::AnalysisHost) -> Option<analysis::Def> {
