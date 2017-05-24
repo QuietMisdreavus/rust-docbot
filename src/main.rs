@@ -124,8 +124,12 @@ fn find_def(input: &str, host: &analysis::AnalysisHost) -> Option<analysis::Def>
     def
 }
 
-fn print_def(def: &analysis::Def, host: &analysis::AnalysisHost) {
-    print!("{:?} {}: ", def.kind, def.qualname);
+fn format_def(def: &analysis::Def, host: &analysis::AnalysisHost) -> Result<String, std::fmt::Error> {
+    use std::fmt::Write;
+
+    let mut output = String::new();
+
+    write!(output, "{:?} {}: ", def.kind, def.qualname)?;
 
     let mut dox = String::new();
     for ln in def.docs.lines() {
@@ -137,12 +141,20 @@ fn print_def(def: &analysis::Def, host: &analysis::AnalysisHost) {
     }
 
     if !dox.is_empty() {
-        println!("{}", dox.trim());
+        write!(output, "{}", dox.trim())?;
+    } else {
+        write!(output, "(no docs available)")?;
     }
 
     if let Ok(url) = host.doc_url(&def.span) {
-        println!("  {}", url);
+        write!(output, " - {}", url)?;
     }
+
+    Ok(output)
+}
+
+fn print_def(def: &analysis::Def, host: &analysis::AnalysisHost) {
+    println!("{}", format_def(def, host).unwrap());
 }
 
 fn read_line() -> std::io::Result<String> {
