@@ -14,7 +14,7 @@ fn main() {
     println!("loading analysis data...");
 
     let host = analysis::AnalysisHost::new(analysis::Target::Release);
-    host.reload(&home, &home, true).unwrap();
+    host.reload(&home, &home).unwrap();
 
     println!("done!");
 

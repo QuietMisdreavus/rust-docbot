@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["QuietMisdreavus <grey@quietmisdreavus.net>"]
 
 [dependencies]
-rls-analysis = { git = "https://github.com/nrc/rls-analysis/" }
+rls-analysis = "0.6.5"
 irc = "0.11.7"
